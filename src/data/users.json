@@ -1,0 +1,166 @@
+{
+  "users": [
+    {
+      "igg": "J0123704",
+      "fullName": "Lesley BAXTER",
+      "jobTitle": "GM Finance & IS",
+      "area": "Finance & IS",
+      "email": "lesley.baxter@totalenergies.com",
+      "reportsTo": "Olagoke ALUKO",
+      "password": "password123"
+    },
+    {
+      "igg": "J0482529",
+      "fullName": "Zakhele CHIBI",
+      "jobTitle": "Information Systems Manager",
+      "area": "Finance & IS",
+      "email": "zakes.chibi@totalenergies.com",
+      "reportsTo": "Lesley BAXTER",
+      "password": "password123"
+    },
+    {
+      "igg": "J0278766",
+      "fullName": "Darryn LEE",
+      "jobTitle": "Competency Centre Manager",
+      "area": "Finance & IS",
+      "email": "darryn.lee@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J0326449",
+      "fullName": "Nirolan AKALOO",
+      "jobTitle": "IS Programme Manager",
+      "area": "Finance & IS",
+      "email": "nirolan.akaloo@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J0418791",
+      "fullName": "Udesh RABEENUNUN",
+      "jobTitle": "Compliance & Information Security Office",
+      "area": "Finance & IS",
+      "email": "udesh.rabeenunun@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J0501938",
+      "fullName": "Mfundo MAHLABA",
+      "jobTitle": "Service Delivery Manager",
+      "area": "Finance & IS",
+      "email": "mfundo.mahlaba@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J0326751",
+      "fullName": "Florence MALULEKA",
+      "jobTitle": "Back Office Analyst",
+      "area": "Finance & IS",
+      "email": "florence.maluleka@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J1082957",
+      "fullName": "Nadia ROSSOUW",
+      "jobTitle": "Technical and Infrastructure Team Lead",
+      "area": "Finance & IS",
+      "email": "nadia.rossouw@totalenergies.com",
+      "reportsTo": "Zakhele CHIBI",
+      "password": "password123"
+    },
+    {
+      "igg": "J0327599",
+      "fullName": "Stanton Lennet EDWARDS",
+      "jobTitle": "Business Solution Analyst",
+      "area": "Finance & IS",
+      "email": "stanton.edwards@totalenergies.com",
+      "reportsTo": "Darryn LEE",
+      "password": "password123"
+    },
+    {
+      "igg": "J0305533",
+      "fullName": "Jacqueline LOGUE",
+      "jobTitle": "Business Solution Analyst",
+      "area": "Finance & IS",
+      "email": "jacqueline.logue@totalenergies.com",
+      "reportsTo": "Darryn LEE",
+      "password": "password123"
+    },
+    {
+      "igg": "J1138687",
+      "fullName": "Mashudu HLOMAYI",
+      "jobTitle": "Business Solution Analyst",
+      "area": "Finance & IS",
+      "email": "mashudu.hlomayi@totalenergies.com",
+      "reportsTo": "Darryn LEE",
+      "password": "password123"
+    },
+    {
+      "igg": "J0326750",
+      "fullName": "Tshepo MALOPE",
+      "jobTitle": "Business Solution Analyst",
+      "area": "Finance & IS",
+      "email": "tshepo.malope@totalenergies.com",
+      "reportsTo": "Darryn LEE",
+      "password": "password123"
+    },
+    {
+      "igg": "J0434477",
+      "fullName": "Innocent MASWANGANYE",
+      "jobTitle": "Project Manager",
+      "area": "Finance & IS",
+      "email": "innocent.maswanganye@totalenergies.com",
+      "reportsTo": "Nirolan AKALOO",
+      "password": "password123"
+    },
+    {
+      "igg": "J1129294",
+      "fullName": "Mabobo MAIMELA",
+      "jobTitle": "Project Manager",
+      "area": "Finance & IS",
+      "email": "mabobo.maimela@totalenergies.com",
+      "reportsTo": "Nirolan AKALOO",
+      "password": "password123"
+    },
+    {
+      "igg": "J1002401",
+      "fullName": "Zeyn SOLOMONS",
+      "jobTitle": "Business Continuity Controller",
+      "area": "Finance & IS",
+      "email": "zeyn.solomons@totalenergies.com",
+      "reportsTo": "Udesh RABEENUNUN",
+      "password": "password123"
+    },
+    {
+      "igg": "J0327098",
+      "fullName": "Bhekisa SIWELA",
+      "jobTitle": "Assets & Mobility Administrator",
+      "area": "Finance & IS",
+      "email": "bhekisa.siwela@totalenergies.com",
+      "reportsTo": "Mfundo MAHLABA",
+      "password": "password123"
+    },
+    {
+      "igg": "J1057035",
+      "fullName": "Hugh LUBBEE",
+      "jobTitle": "ESO Technical Infrastructure Specialist",
+      "area": "Finance & IS",
+      "email": "hugh.lubbee@totalenergies.com",
+      "reportsTo": "Nadia ROSSOUW",
+      "password": "password123"
+    },
+    {
+      "igg": "J1113061",
+      "fullName": "Adrian FRANCIS",
+      "jobTitle": "IT Technical Infrastructure Specialist",
+      "area": "Finance & IS",
+      "email": "adrian.francis@totalenergies.com",
+      "reportsTo": "Nadia ROSSOUW",
+      "password": "password123"
+    }
+  ]
+}
