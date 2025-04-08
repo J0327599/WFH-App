@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   format, 
@@ -31,12 +31,6 @@ interface StatusEntry {
   status: WorkStatus;
 }
 
-interface GroupedUsers {
-  [manager: string]: {
-    [department: string]: User[];
-  };
-}
-
 const statusConfig = {
   H: { label: 'Work From Home', color: 'bg-blue-100 text-blue-800' },
   O: { label: 'Off-site', color: 'bg-purple-100 text-purple-800' },
@@ -47,7 +41,7 @@ const statusConfig = {
 
 const UserStatusDashboard: React.FC = () => {
   const [users] = useState<User[]>(userData.users);
-  const [statuses, setStatuses] = useState<StatusEntry[]>(workStatusData.statuses || []);
+  const [statuses] = useState<StatusEntry[]>(workStatusData.statuses || []);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [currentDate, setCurrentDate] = useState(new Date());
   const navigate = useNavigate();

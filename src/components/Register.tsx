@@ -22,10 +22,10 @@ export const Register = () => {
     try {
       await signUp(formData.email, formData.password, {
         igg: formData.igg,
-        full_name: formData.fullName,
-        job_title: formData.jobTitle,
+        fullName: formData.fullName,
+        jobTitle: formData.jobTitle,
         area: formData.area,
-        reports_to: formData.reportsTo,
+        reportsTo: formData.reportsTo,
       });
       navigate('/');
     } catch (err) {
