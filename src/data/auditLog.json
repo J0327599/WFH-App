@@ -1,0 +1,24 @@
+{
+  "logs": [
+    {
+      "id": "log_1",
+      "timestamp": "2025-01-02T08:30:00Z",
+      "userId": "john.doe@totalenergies.com",
+      "action": "LOGIN",
+      "details": "User logged in successfully"
+    },
+    {
+      "id": "log_2",
+      "timestamp": "2025-01-02T08:31:00Z",
+      "userId": "john.doe@totalenergies.com",
+      "action": "STATUS_UPDATE",
+      "details": "Updated status to WFH",
+      "changes": {
+        "date": "2025-01-02",
+        "oldStatus": "",
+        "newStatus": "H",
+        "comment": "Working on project documentation"
+      }
+    }
+  ]
+}

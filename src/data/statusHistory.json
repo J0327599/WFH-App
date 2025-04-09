@@ -1,0 +1,24 @@
+{
+  "2025-01": {
+    "statuses": [
+      {
+        "email": "john.doe@totalenergies.com",
+        "date": "2025-01-02",
+        "status": "H",
+        "comment": "Working on project documentation"
+      },
+      {
+        "email": "jane.smith@totalenergies.com",
+        "date": "2025-01-02",
+        "status": "O",
+        "comment": "Client meeting in Cape Town"
+      }
+    ]
+  },
+  "2025-02": {
+    "statuses": []
+  },
+  "2025-03": {
+    "statuses": []
+  }
+}

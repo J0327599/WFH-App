@@ -9,7 +9,7 @@ import {
 import { isHoliday } from '../data/holidays';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import userData from '../data/users.json';
-import workStatusData from '../data/workStatus.json';
+import { statusService, StatusEntry } from '../services/statusService';
 
 const statusConfig = {
   H: { label: 'Work From Home', color: 'bg-blue-100 text-blue-800' },
@@ -30,13 +30,6 @@ interface User {
 
 type WorkStatus = keyof typeof statusConfig | '';
 
-interface StatusEntry {
-  email: string;
-  date: string;
-  status: WorkStatus;
-  comment?: string;
-};
-
 interface StatusPopupProps {
   status: WorkStatus;
   comment?: string;
@@ -44,6 +37,37 @@ interface StatusPopupProps {
   onClose: () => void;
   position: { x: number; y: number };
 }
+
+// Wrapper component to handle async status loading for popup
+const StatusPopupWrapper: React.FC<{
+  email: string;
+  date: Date;
+  onSelect: (status: WorkStatus, comment?: string) => void;
+  onClose: () => void;
+  position: { x: number; y: number };
+}> = ({ email, date, onSelect, onClose, position }) => {
+  const [status, setStatus] = useState<WorkStatus>('');
+  const [comment, setComment] = useState<string>();
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const newStatus = await statusService.getUserStatus(email, format(date, 'yyyy-MM-dd'));
+      setStatus((newStatus?.status || '') as WorkStatus);
+      setComment(newStatus?.comment);
+    };
+    loadStatus();
+  }, [email, date]);
+
+  return (
+    <StatusPopup
+      status={status}
+      comment={comment}
+      onSelect={onSelect}
+      onClose={onClose}
+      position={position}
+    />
+  );
+};
 
 const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, onClose, position }) => {
   const popupRef = useRef<HTMLDivElement>(null);
@@ -102,25 +126,50 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, on
   );
 };
 
-interface MonthlyStatusMap {
-  [key: string]: StatusEntry[];
-}
+// Status cell component to handle async status loading
+const StatusCell: React.FC<{
+  user: User;
+  day: Date;
+  onStatusClick: (event: React.MouseEvent, email: string, date: Date) => void;
+}> = ({ user, day, onStatusClick }) => {
+  const [status, setStatus] = useState<WorkStatus>('');
+  const [comment, setComment] = useState<string>();
+  const [statusColor, setStatusColor] = useState<string>('bg-gray-100 text-gray-800');
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
+      const currentStatus = (newStatus?.status || '') as WorkStatus;
+      setStatus(currentStatus);
+      setComment(newStatus?.comment);
+      
+      const color = isWeekend(day) ? 'bg-gray-100 text-gray-400' :
+        isHoliday(day) ? 'bg-red-50 text-red-400' :
+        !currentStatus ? 'bg-gray-100 text-gray-800' :
+        statusConfig[currentStatus as keyof typeof statusConfig].color;
+      setStatusColor(color);
+    };
+    loadStatus();
+  }, [user.email, day]);
+
+  const displayText = isWeekend(day) ? 'W' : 
+    isHoliday(day) ? 'H' : 
+    status || 'N';
+
+  return (
+    <div 
+      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${statusColor} ${!isWeekend(day) && !isHoliday(day) ? 'cursor-pointer hover:ring-2 hover:ring-gray-300' : ''}`}
+      title={`${format(day, 'MMMM d')}: ${isWeekend(day) ? 'Weekend' : isHoliday(day) ? isHoliday(day)?.name : (status && status in statusConfig ? `${statusConfig[status as keyof typeof statusConfig].label}${comment ? ` - ${comment}` : ''}` : 'Not Set')}`}
+      onClick={(e) => !isWeekend(day) && !isHoliday(day) && onStatusClick(e, user.email, day)}
+    >
+      {displayText}
+    </div>
+  );
+};
 
 const UserStatusTable: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [users] = useState<User[]>(userData.users);
-  const [monthlyStatuses, setMonthlyStatuses] = useState<MonthlyStatusMap>(() => {
-    // Initialize with existing data, organized by month
-    const initialMap: MonthlyStatusMap = {};
-    (workStatusData.statuses as StatusEntry[])?.forEach(status => {
-      const monthKey = status.date.substring(0, 7); // Get YYYY-MM format
-      if (!initialMap[monthKey]) {
-        initialMap[monthKey] = [];
-      }
-      initialMap[monthKey].push(status);
-    });
-    return initialMap;
-  });
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [expandAll, setExpandAll] = useState(false);
   const [activePopup, setActivePopup] = useState<{ email: string; date: Date; position: { x: number; y: number } } | null>(null);
@@ -196,25 +245,11 @@ const UserStatusTable: React.FC = () => {
         <div className="flex items-center">
           {days.map((day) => (
             <div key={day.toString()} className={`px-1 ${isWeekend(day) ? 'opacity-50' : ''}`}>
-              <div 
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${getStatusColor(getStatus(user.email, day), day)} ${!isWeekend(day) && !isHoliday(day) ? 'cursor-pointer hover:ring-2 hover:ring-gray-300' : ''}`}
-                title={`${format(day, 'MMMM d')}: ${isWeekend(day) ? 'Weekend' : isHoliday(day) ? isHoliday(day)?.name : (getStatus(user.email, day) && getStatus(user.email, day) in statusConfig ? `${statusConfig[getStatus(user.email, day) as keyof typeof statusConfig].label}${getComment(user.email, day) ? ` - ${getComment(user.email, day)}` : ''}` : 'Not Set')}`}
-                onClick={(e) => {
-                  if (!isWeekend(day) && !isHoliday(day)) {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    setActivePopup({
-                      email: user.email,
-                      date: day,
-                      position: {
-                        x: rect.left,
-                        y: rect.bottom + window.scrollY
-                      }
-                    });
-                  }
-                }}
-              >
-                {isWeekend(day) ? 'W' : isHoliday(day) ? 'H' : (getStatus(user.email, day) || 'N')}
-              </div>
+              <StatusCell 
+                user={user}
+                day={day}
+                onStatusClick={handleStatusClick}
+              />
             </div>
           ))}
         </div>
@@ -261,64 +296,27 @@ const UserStatusTable: React.FC = () => {
   const days = getDaysInMonth();
 
   // Update user status
-  const updateStatus = (email: string, date: Date, newStatus: WorkStatus, comment?: string) => {
+  const updateStatus = async (email: string, date: Date, status: WorkStatus, comment?: string) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    const monthKey = format(date, 'yyyy-MM');
-    
-    setMonthlyStatuses(prev => {
-      const monthStatuses = [...(prev[monthKey] || [])];
-      const filteredStatuses = monthStatuses.filter(
-        s => !(s.email === email && s.date === formattedDate)
-      );
+    const newStatus: StatusEntry = { email, date: formattedDate, status, comment };
+    await statusService.updateStatus(newStatus);
+  };
 
-      if (newStatus) {
-        filteredStatuses.push({
-          email,
-          date: formattedDate,
-          status: newStatus,
-          comment: comment?.trim() || undefined
-        });
+
+
+  // Handle status cell click
+  const handleStatusClick = async (event: React.MouseEvent, email: string, date: Date) => {
+    if (isWeekend(date) || isHoliday(date)) return;
+
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    setActivePopup({
+      email,
+      date,
+      position: {
+        x: rect.left,
+        y: rect.bottom + window.scrollY
       }
-
-      return {
-        ...prev,
-        [monthKey]: filteredStatuses
-      };
     });
-
-    setActivePopup(null);
-  };
-
-  // Get user's status for a specific date
-  const getStatus = (email: string, date: Date): WorkStatus => {
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    const monthKey = format(date, 'yyyy-MM');
-    const monthStatuses = monthlyStatuses[monthKey] || [];
-    const status = monthStatuses.find(s => 
-      s.email === email && 
-      s.date === formattedDate
-    );
-    return status?.status || '';
-  };
-
-  // Get comment for a specific date
-  const getComment = (email: string, date: Date): string | undefined => {
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    const monthKey = format(date, 'yyyy-MM');
-    const monthStatuses = monthlyStatuses[monthKey] || [];
-    const status = monthStatuses.find(s => 
-      s.email === email && 
-      s.date === formattedDate
-    );
-    return status?.comment;
-  };
-
-  // Get status color based on work status
-  const getStatusColor = (status: WorkStatus, date: Date): string => {
-    if (isWeekend(date)) return 'bg-gray-100 text-gray-400';
-    if (isHoliday(date)) return 'bg-red-100 text-red-800';
-    if (!status || !(status in statusConfig)) return 'bg-gray-100 text-gray-800';
-    return statusConfig[status].color;
   };
 
   // Render header row with dates
@@ -417,10 +415,14 @@ const UserStatusTable: React.FC = () => {
         </div>
       </div>
       {activePopup && (
-        <StatusPopup
-          status={getStatus(activePopup.email, activePopup.date)}
-          comment={getComment(activePopup.email, activePopup.date)}
-          onSelect={(newStatus, comment) => updateStatus(activePopup.email, activePopup.date, newStatus, comment)}
+        <StatusPopupWrapper
+          email={activePopup.email}
+          date={activePopup.date}
+          onSelect={async (status: WorkStatus, comment?: string) => {
+            if (!activePopup) return;
+            await updateStatus(activePopup.email, activePopup.date, status, comment);
+            setActivePopup(null);
+          }}
           onClose={() => setActivePopup(null)}
           position={activePopup.position}
         />

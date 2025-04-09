@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
@@ -10,8 +10,8 @@ import {
   Edit2
 } from 'lucide-react';
 import userData from '../data/users.json';
-import workStatusData from '../data/workStatus.json';
 import { format } from 'date-fns';
+import { getMonthlyStatuses } from '../services/statusService';
 
 interface User {
   igg: string;
@@ -42,12 +42,31 @@ const AdminDashboard: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
   const [users] = useState<User[]>(userData.users);
-  const [statuses] = useState<StatusEntry[]>(workStatusData.statuses || []);
+  const [statuses, setStatuses] = useState<StatusEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Handle logo click to go back to main dashboard
   const handleLogoClick = () => {
     navigate('/');
   };
+
+  // Fetch current statuses
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      setIsLoading(true);
+      try {
+        const currentDate = new Date();
+        const monthData = await getMonthlyStatuses(currentDate);
+        setStatuses(monthData);
+      } catch (error) {
+        console.error('Error fetching statuses:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStatuses();
+  }, []);
 
   // Calculate dashboard stats
   const calculateStats = (): DashboardStats => {
@@ -123,26 +142,37 @@ const AdminDashboard: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-            <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500">Working From Home</h3>
-            <p className="text-2xl font-bold text-blue-600">{stats.workingFromHome}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500">On Leave</h3>
-            <p className="text-2xl font-bold text-yellow-600">{stats.onLeave}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500">Offsite</h3>
-            <p className="text-2xl font-bold text-purple-600">{stats.offsite}</p>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-            <h3 className="text-sm font-medium text-gray-500">In Training</h3>
-            <p className="text-2xl font-bold text-green-600">{stats.inTraining}</p>
-          </div>
+          {isLoading ? (
+            Array(5).fill(0).map((_, i) => (
+              <div key={i} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-12"></div>
+              </div>
+            ))
+          ) : (
+            <>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-500">Working From Home</h3>
+                <p className="text-2xl font-bold text-blue-600">{stats.workingFromHome}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-500">On Leave</h3>
+                <p className="text-2xl font-bold text-yellow-600">{stats.onLeave}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-500">Offsite</h3>
+                <p className="text-2xl font-bold text-purple-600">{stats.offsite}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-sm font-medium text-gray-500">In Training</h3>
+                <p className="text-2xl font-bold text-green-600">{stats.inTraining}</p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Filters and Actions */}
