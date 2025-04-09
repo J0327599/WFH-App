@@ -34,17 +34,20 @@ interface StatusEntry {
   email: string;
   date: string;
   status: WorkStatus;
+  comment?: string;
 };
 
 interface StatusPopupProps {
   status: WorkStatus;
-  onSelect: (status: WorkStatus) => void;
+  comment?: string;
+  onSelect: (status: WorkStatus, comment?: string) => void;
   onClose: () => void;
   position: { x: number; y: number };
 }
 
-const StatusPopup: React.FC<StatusPopupProps> = ({ status, onSelect, onClose, position }) => {
+const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, onClose, position }) => {
   const popupRef = useRef<HTMLDivElement>(null);
+  const [newComment, setNewComment] = useState(comment || '');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,10 +67,19 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, onSelect, onClose, po
       style={{ top: position.y, left: position.x }}
     >
       <div className="grid grid-cols-1 gap-1">
+        <div className="px-3 py-2">
+          <textarea
+            className="w-full p-2 text-sm border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Add a comment (optional)"
+            rows={2}
+            value={newComment}
+            onChange={(e) => setNewComment(e.target.value)}
+          />
+        </div>
         {Object.entries(statusConfig).map(([key, value]) => (
           <button
             key={key}
-            onClick={() => onSelect(key as WorkStatus)}
+            onClick={() => onSelect(key as WorkStatus, newComment)}
             className={`flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-50 ${status === key ? 'bg-gray-100' : ''}`}
           >
             <div className={`w-4 h-4 rounded-full ${value.color} flex items-center justify-center text-[10px]`}>
@@ -77,7 +89,7 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, onSelect, onClose, po
           </button>
         ))}
         <button
-          onClick={() => onSelect('')}
+          onClick={() => onSelect('', newComment)}
           className={`flex items-center space-x-2 px-3 py-2 rounded hover:bg-gray-50 ${status === '' ? 'bg-gray-100' : ''}`}
         >
           <div className="w-4 h-4 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center text-[10px]">
@@ -186,7 +198,7 @@ const UserStatusTable: React.FC = () => {
             <div key={day.toString()} className={`px-1 ${isWeekend(day) ? 'opacity-50' : ''}`}>
               <div 
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs ${getStatusColor(getStatus(user.email, day), day)} ${!isWeekend(day) && !isHoliday(day) ? 'cursor-pointer hover:ring-2 hover:ring-gray-300' : ''}`}
-                title={`${format(day, 'MMMM d')}: ${isWeekend(day) ? 'Weekend' : isHoliday(day) ? isHoliday(day)?.name : (getStatus(user.email, day) && getStatus(user.email, day) in statusConfig ? statusConfig[getStatus(user.email, day) as keyof typeof statusConfig].label : 'Not Set')}`}
+                title={`${format(day, 'MMMM d')}: ${isWeekend(day) ? 'Weekend' : isHoliday(day) ? isHoliday(day)?.name : (getStatus(user.email, day) && getStatus(user.email, day) in statusConfig ? `${statusConfig[getStatus(user.email, day) as keyof typeof statusConfig].label}${getComment(user.email, day) ? ` - ${getComment(user.email, day)}` : ''}` : 'Not Set')}`}
                 onClick={(e) => {
                   if (!isWeekend(day) && !isHoliday(day)) {
                     const rect = e.currentTarget.getBoundingClientRect();
@@ -249,7 +261,7 @@ const UserStatusTable: React.FC = () => {
   const days = getDaysInMonth();
 
   // Update user status
-  const updateStatus = (email: string, date: Date, newStatus: WorkStatus) => {
+  const updateStatus = (email: string, date: Date, newStatus: WorkStatus, comment?: string) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const monthKey = format(date, 'yyyy-MM');
     
@@ -263,7 +275,8 @@ const UserStatusTable: React.FC = () => {
         filteredStatuses.push({
           email,
           date: formattedDate,
-          status: newStatus
+          status: newStatus,
+          comment: comment?.trim() || undefined
         });
       }
 
@@ -286,6 +299,18 @@ const UserStatusTable: React.FC = () => {
       s.date === formattedDate
     );
     return status?.status || '';
+  };
+
+  // Get comment for a specific date
+  const getComment = (email: string, date: Date): string | undefined => {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const monthKey = format(date, 'yyyy-MM');
+    const monthStatuses = monthlyStatuses[monthKey] || [];
+    const status = monthStatuses.find(s => 
+      s.email === email && 
+      s.date === formattedDate
+    );
+    return status?.comment;
   };
 
   // Get status color based on work status
@@ -394,7 +419,8 @@ const UserStatusTable: React.FC = () => {
       {activePopup && (
         <StatusPopup
           status={getStatus(activePopup.email, activePopup.date)}
-          onSelect={(newStatus) => updateStatus(activePopup.email, activePopup.date, newStatus)}
+          comment={getComment(activePopup.email, activePopup.date)}
+          onSelect={(newStatus, comment) => updateStatus(activePopup.email, activePopup.date, newStatus, comment)}
           onClose={() => setActivePopup(null)}
           position={activePopup.position}
         />
