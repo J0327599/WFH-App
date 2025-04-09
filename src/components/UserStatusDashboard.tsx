@@ -13,6 +13,7 @@ import {
 import { ArrowLeft, ChevronDown, ChevronRight, ChevronLeft } from 'lucide-react';
 import userData from '../data/users.json';
 import workStatusData from '../data/workStatus.json';
+import UserStatusTable from './UserStatusTable';
 
 interface User {
   igg: string;
@@ -288,6 +289,11 @@ const UserStatusDashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
+          {/* Table View */}
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            <UserStatusTable />
+          </div>
+
           {/* Render the complete hierarchy starting from the top */}
           {topManager && renderTopManagerPlaceholder(topManager)}
         </div>

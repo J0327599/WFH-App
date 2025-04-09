@@ -41,7 +41,7 @@ export const Login = () => {
           <LogIn className="mx-auto h-12 w-12 text-indigo-600" />
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Use email: hugh.lubbee@totalenergies.com
+            Use email: yourname.yoursurname@totalenergies.com
             <br />
             password: password123
           </p>
