@@ -109,5 +109,3 @@ export const statusService = {
     }
   }
 };
-
-export type { StatusEntry };

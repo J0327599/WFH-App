@@ -47,7 +47,7 @@ const StatusPopupWrapper: React.FC<{
 
   useEffect(() => {
     const loadStatus = async () => {
-      const newStatus = await statusService.getUserStatus(email, format(date, 'yyyy-MM-dd'));
+      const newStatus = await statusService.getUserStatus(email, date);
       setStatus((newStatus?.status || '') as WorkStatus);
       setComment(newStatus?.comment);
     };
@@ -147,13 +147,13 @@ const StatusCell: React.FC<StatusCellProps> = ({ user, day, onStatusClick, statu
         // Assuming comment is part of the cache or fetched separately if needed
       } else {
         try {
-          const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
+          const newStatus = await statusService.getUserStatus(user.email, day);
           const currentStatus = newStatus?.status || '';
-          setStatus(currentStatus);
+          setStatus(currentStatus as WorkStatus);
           setComment(newStatus?.comment);
 
           // Update cache
-          statusCache.current.set(cacheKey, { status: currentStatus, timestamp: Date.now() }); // Use passed prop
+          statusCache.current.set(cacheKey, { status: currentStatus as WorkStatus, timestamp: Date.now() }); // Use passed prop
         } catch (error) {
           console.error('Failed to load status:', error);
           // Handle error appropriately, maybe set a default state
@@ -322,18 +322,17 @@ const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, o
 
   // Update user status
   const updateStatus = async (email: string, date: Date, status: WorkStatus, comment?: string) => {
-    const formattedDate = format(date, 'yyyy-MM-dd');
-    const newStatus: StatusEntry = { email, date: formattedDate, status, comment };
+    const newStatus: StatusEntry = { email, date: format(date, 'yyyy-MM-dd'), status, comment };
     
     try {
       await statusService.updateStatus(newStatus);
       // Update cache after successful API call
-      const cacheKey = `${email}-${formattedDate}`;
+      const cacheKey = `${email}-${format(date, 'yyyy-MM-dd')}`;
       statusCache.current.set(cacheKey, { status, timestamp: Date.now() });
       
       // Force re-render of the affected StatusCell
       const event = new CustomEvent('statusUpdate', { 
-        detail: { email, date: formattedDate, status, comment } 
+        detail: { email, date: format(date, 'yyyy-MM-dd'), status, comment } 
       });
       window.dispatchEvent(event);
     } catch (error) {
