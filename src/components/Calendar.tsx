@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 import { Calendar as CalendarIcon, LogOut, Check, ChevronLeft, ChevronRight, Users } from 'lucide-react';
 import { db } from '../lib/db';
 import { useNavigate } from 'react-router-dom';

@@ -139,53 +139,58 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, on
 };
 
 // Status cell component to handle async status loading
-const StatusCell: React.FC<{ user: User; day: Date; onStatusClick: (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => void }> = ({ user, day, onStatusClick }) => {
-  const cacheKey = `${user.email}-${format(day, 'yyyy-MM-dd')}`;
-  const cachedStatus = statusCache.current.get(cacheKey);
+interface StatusCellProps {
+  user: User;
+  day: Date;
+  onStatusClick: (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => void;
+  statusCache: React.MutableRefObject<Map<string, { status: WorkStatus; timestamp: number }>>;
+}
+
+const StatusCell: React.FC<StatusCellProps> = ({ user, day, onStatusClick, statusCache }) => {
   const [status, setStatus] = useState<WorkStatus>('');
   const [comment, setComment] = useState<string>();
-  const [statusColor, setStatusColor] = useState<string>('bg-gray-100 text-gray-800');
+  const [statusColor, setStatusColor] = useState('bg-gray-100 text-gray-500');
 
   useEffect(() => {
     const loadStatus = async () => {
-      try {
-        // Check cache first
-        if (cachedStatus && Date.now() - cachedStatus.timestamp < 5000) {
-          setStatus(cachedStatus.status);
-          return;
+      const dateString = format(day, 'yyyy-MM-dd');
+      const cacheKey = `${user.email}-${dateString}`;
+      const cachedItem = statusCache.current.get(cacheKey);
+
+      // Check cache first
+      if (cachedItem && (Date.now() - cachedItem.timestamp < 300000)) { // Cache valid for 5 minutes
+        setStatus(cachedItem.status);
+        // Assuming comment is part of the cache or fetched separately if needed
+      } else {
+        try {
+          const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
+          const currentStatus = newStatus?.status || '';
+          setStatus(currentStatus);
+          setComment(newStatus?.comment);
+
+          // Update cache
+          statusCache.current.set(cacheKey, { status: currentStatus, timestamp: Date.now() }); // Use passed prop
+        } catch (error) {
+          console.error('Failed to load status:', error);
+          // Handle error appropriately, maybe set a default state
         }
-
-        const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
-        const currentStatus = (newStatus?.status || '') as WorkStatus;
-        setStatus(currentStatus);
-        setComment(newStatus?.comment);
-
-        // Update cache
-        statusCache.current.set(cacheKey, { status: currentStatus, timestamp: Date.now() });
-      } catch (error) {
-        console.error('Failed to load status:', error);
       }
     };
 
-    loadStatus();
-
-    // Listen for status updates
-    const handleStatusUpdate = (e: CustomEvent<{ email: string; date: string; status: WorkStatus; comment?: string }>) => {
-      if (e.detail.email === user.email && e.detail.date === format(day, 'yyyy-MM-dd')) {
-        setStatus(e.detail.status);
-        setComment(e.detail.comment);
-      }
-    };
-
-    window.addEventListener('statusUpdate', handleStatusUpdate as EventListener);
-    return () => window.removeEventListener('statusUpdate', handleStatusUpdate as EventListener);
-  }, [user.email, day, cacheKey]);
+    if (!isWeekend(day) && !isHoliday(day)) {
+      loadStatus();
+    }
+  }, [user.email, day, statusCache]);
 
   useEffect(() => {
-    const color = isWeekend(day) ? 'bg-gray-100 text-gray-400' :
-      isHoliday(day) ? 'bg-red-50 text-red-400' :
-      !status ? 'bg-gray-100 text-gray-800' :
-      statusConfig[status as keyof typeof statusConfig].color;
+    let color = 'bg-gray-100 text-gray-500'; // Default/Not Set
+    if (isWeekend(day)) {
+      color = 'bg-gray-100 text-gray-400';
+    } else if (isHoliday(day)) {
+      color = 'bg-red-50 text-red-400';
+    } else if (status) {
+      color = statusConfig[status as keyof typeof statusConfig].color;
+    }
     setStatusColor(color);
   }, [day, status]);
 
@@ -294,6 +299,7 @@ const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, o
                 user={user}
                 day={day}
                 onStatusClick={handleStatusClick}
+                statusCache={statusCache} // Pass statusCache ref
               />
             </div>
           ))}
@@ -350,8 +356,6 @@ const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, o
       console.error('Failed to update status:', error);
     }
   };
-
-
 
   // Handle status cell click
   const handleStatusClick = (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => {

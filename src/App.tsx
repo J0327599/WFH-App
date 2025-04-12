@@ -5,7 +5,7 @@ import { Register } from './components/Register';
 import { Calendar } from './components/Calendar';
 import UserStatusDashboard from './components/UserStatusDashboard';
 import AdminDashboard from './components/AdminDashboard';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
