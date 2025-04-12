@@ -172,7 +172,7 @@ const AnalyticsDashboard: React.FC = () => {
                       outerRadius={80}
                       label
                     >
-                      {statusCounts.map((_entry, index) => (
+                      {statusCounts.map((index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

@@ -8,17 +8,10 @@ import {
 } from 'date-fns';
 import { isHoliday } from '../data/holidays';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { statusService, StatusEntry } from '../services/statusService';
+import { statusService, StatusEntry, User } from '../services/statusService';
 
 interface UserStatusTableProps {
-  users: {
-    igg: string;
-    fullName: string;
-    jobTitle: string;
-    area: string;
-    email: string;
-    reportsTo: string;
-  }[];
+  users: User[];
   currentDate: Date;
   onMonthChange: (date: Date) => void;
 }
@@ -30,15 +23,6 @@ const statusConfig = {
   T: { label: 'Training', color: 'bg-green-100 text-green-800' },
   S: { label: 'Sick Leave', color: 'bg-red-100 text-red-800' },
 } as const;
-
-interface User {
-  igg: string;
-  fullName: string;
-  jobTitle: string;
-  area: string;
-  email: string;
-  reportsTo: string;
-}
 
 type WorkStatus = keyof typeof statusConfig | '';
 
