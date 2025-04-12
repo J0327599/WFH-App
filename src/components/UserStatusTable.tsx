@@ -140,25 +140,54 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, on
 
 // Status cell component to handle async status loading
 const StatusCell: React.FC<{ user: User; day: Date; onStatusClick: (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => void }> = ({ user, day, onStatusClick }) => {
+  const cacheKey = `${user.email}-${format(day, 'yyyy-MM-dd')}`;
+  const cachedStatus = statusCache.current.get(cacheKey);
   const [status, setStatus] = useState<WorkStatus>('');
   const [comment, setComment] = useState<string>();
   const [statusColor, setStatusColor] = useState<string>('bg-gray-100 text-gray-800');
 
   useEffect(() => {
     const loadStatus = async () => {
-      const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
-      const currentStatus = (newStatus?.status || '') as WorkStatus;
-      setStatus(currentStatus);
-      setComment(newStatus?.comment);
-      
-      const color = isWeekend(day) ? 'bg-gray-100 text-gray-400' :
-        isHoliday(day) ? 'bg-red-50 text-red-400' :
-        !currentStatus ? 'bg-gray-100 text-gray-800' :
-        statusConfig[currentStatus as keyof typeof statusConfig].color;
-      setStatusColor(color);
+      try {
+        // Check cache first
+        if (cachedStatus && Date.now() - cachedStatus.timestamp < 5000) {
+          setStatus(cachedStatus.status);
+          return;
+        }
+
+        const newStatus = await statusService.getUserStatus(user.email, format(day, 'yyyy-MM-dd'));
+        const currentStatus = (newStatus?.status || '') as WorkStatus;
+        setStatus(currentStatus);
+        setComment(newStatus?.comment);
+
+        // Update cache
+        statusCache.current.set(cacheKey, { status: currentStatus, timestamp: Date.now() });
+      } catch (error) {
+        console.error('Failed to load status:', error);
+      }
     };
+
     loadStatus();
-  }, [user.email, day]);
+
+    // Listen for status updates
+    const handleStatusUpdate = (e: CustomEvent<{ email: string; date: string; status: WorkStatus; comment?: string }>) => {
+      if (e.detail.email === user.email && e.detail.date === format(day, 'yyyy-MM-dd')) {
+        setStatus(e.detail.status);
+        setComment(e.detail.comment);
+      }
+    };
+
+    window.addEventListener('statusUpdate', handleStatusUpdate as EventListener);
+    return () => window.removeEventListener('statusUpdate', handleStatusUpdate as EventListener);
+  }, [user.email, day, cacheKey]);
+
+  useEffect(() => {
+    const color = isWeekend(day) ? 'bg-gray-100 text-gray-400' :
+      isHoliday(day) ? 'bg-red-50 text-red-400' :
+      !status ? 'bg-gray-100 text-gray-800' :
+      statusConfig[status as keyof typeof statusConfig].color;
+    setStatusColor(color);
+  }, [day, status]);
 
   const displayText = isWeekend(day) ? 'W' : 
     isHoliday(day) ? 'H' : 
@@ -298,11 +327,28 @@ const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, o
 
   const days = getDaysInMonth();
 
+  // Cache for status updates to prevent unnecessary API calls
+  const statusCache = useRef(new Map<string, { status: WorkStatus; timestamp: number }>());
+
   // Update user status
   const updateStatus = async (email: string, date: Date, status: WorkStatus, comment?: string) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     const newStatus: StatusEntry = { email, date: formattedDate, status, comment };
-    await statusService.updateStatus(newStatus);
+    
+    try {
+      await statusService.updateStatus(newStatus);
+      // Update cache after successful API call
+      const cacheKey = `${email}-${formattedDate}`;
+      statusCache.current.set(cacheKey, { status, timestamp: Date.now() });
+      
+      // Force re-render of the affected StatusCell
+      const event = new CustomEvent('statusUpdate', { 
+        detail: { email, date: formattedDate, status, comment } 
+      });
+      window.dispatchEvent(event);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+    }
   };
 
 

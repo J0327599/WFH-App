@@ -4,14 +4,16 @@ const API_URL = 'http://localhost:3000/api';
 
 // Export functions directly
 export const getMonthlyStatuses = async (date: Date): Promise<StatusEntry[]> => {
-  const response = await fetch(`${API_URL}/status/monthly/${date.toISOString()}`);
+  const formattedDate = format(date, 'yyyy-MM-dd');
+  const response = await fetch(`${API_URL}/status/monthly/${formattedDate}`);
   if (!response.ok) throw new Error('Failed to fetch monthly statuses');
   return response.json();
 };
 
 export const statusService = {
   async getMonthlyStatuses(date: Date): Promise<StatusEntry[]> {
-    const response = await fetch(`${API_URL}/status/monthly/${date.toISOString()}`);
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const response = await fetch(`${API_URL}/status/monthly/${formattedDate}`);
     if (!response.ok) throw new Error('Failed to fetch monthly statuses');
     return response.json();
   },
