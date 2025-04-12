@@ -54,8 +54,20 @@ const insertAuditLog = db.prepare(`
   VALUES (@timestamp, @userId, @action, @details)
 `);
 
-// Begin transaction
-const transaction = db.transaction(() => {
+// Function to seed data
+const seedData = () => {
+  console.log('Starting data seeding process...');
+  const existingEntries = db.prepare('SELECT COUNT(*) as count FROM status_entries').get();
+  
+  if (existingEntries.count > 0) {
+    console.log(`Found ${existingEntries.count} existing entries, skipping seed...`);
+    return;
+  }
+
+  console.log('No existing entries found, starting seed process...');
+  
+  // Begin transaction
+  const transaction = db.transaction(() => {
   days.forEach(day => {
     users.forEach(user => {
       // Skip weekends
@@ -100,8 +112,15 @@ const transaction = db.transaction(() => {
   });
 });
 
-// Execute transaction
+// Execute the transaction
 transaction();
+console.log('Seed process completed successfully!');
+};
+
+// Call seedData function
+seedData();
+
+// Routes
 
 // Get monthly statuses
 app.get('/api/status/monthly/:date', (req, res) => {
@@ -198,6 +217,30 @@ app.get('/api/audit-logs', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// Add status count endpoint
+app.get('/api/status/count', (req, res) => {
+  try {
+    const result = db.prepare('SELECT COUNT(*) as count FROM status_entries').get();
+    res.json({ count: result.count });
+  } catch (error) {
+    console.error('Error getting status count:', error);
+    res.status(500).json({ error: 'Failed to get status count' });
+  }
+});
+
+// Clear database endpoint (for testing)
+app.post('/api/reset-database', (req, res) => {
+  try {
+    db.prepare('DELETE FROM status_entries').run();
+    db.prepare('DELETE FROM audit_logs').run();
+    seedData();
+    res.json({ message: 'Database reset and reseeded successfully' });
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    res.status(500).json({ error: 'Failed to reset database' });
+  }
+});
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
 });
