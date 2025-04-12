@@ -425,48 +425,51 @@ const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, o
 
   return (
     <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+      {/* Container enabling horizontal scroll */}
       <div className="overflow-x-auto">
-        <div className="inline-block min-w-full align-middle">
-          <div className="overflow-hidden">
-            <div className="min-w-full">
-              <HeaderRow />
-              <div className="divide-y divide-gray-200">
-                {renderUserRow({ fullName: findTopManager(), email: '', igg: '', jobTitle: '', area: '', reportsTo: '' })}
-              </div>
-            </div>
+        {/* Content container with a minimum width to force scroll on small screens */}
+        {/* Adjust min-w value as needed based on actual content width */}
+        <div className="min-w-[1200px]">
+          <HeaderRow />
+          <div className="divide-y divide-gray-200">
+            {/* Reverted to original call using findTopManager to fix rendering */}
+            {renderUserRow({ fullName: findTopManager(), email: '', igg: '', jobTitle: '', area: '', reportsTo: '' })}
           </div>
         </div>
       </div>
       
       {/* Legend */}
-      <div className="flex flex-wrap gap-1 text-[10px] text-gray-500 px-1">
-        {Object.entries(statusConfig).map(([key, value]) => (
-          <div key={key} className="flex items-center space-x-1">
-            <div className={`w-3 h-3 rounded-full ${value.color} flex items-center justify-center text-[8px]`}>
-              {key}
+      <div className="p-2 border-t border-gray-200">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs text-gray-600">
+          {Object.entries(statusConfig).map(([key, value]) => (
+            <div key={key} className="flex items-center space-x-1">
+              <div className={`w-3 h-3 rounded-full ${value.color} flex items-center justify-center text-[8px]`}>
+                {key}
+              </div>
+              <span>{value.label}</span>
             </div>
-            <span>{value.label}</span>
+          ))}
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-[8px]">
+              W
+            </div>
+            <span>Weekend</span>
           </div>
-        ))}
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center text-[8px]">
-            W
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-red-100 text-red-800 flex items-center justify-center text-[8px]">
+              H
+            </div>
+            <span>Holiday</span>
           </div>
-          <span>Weekend</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 rounded-full bg-red-100 text-red-800 flex items-center justify-center text-[8px]">
-            H
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center text-[8px]">
+              N
+            </div>
+            <span>Not Set</span>
           </div>
-          <span>Holiday</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <div className="w-3 h-3 rounded-full bg-gray-100 text-gray-800 flex items-center justify-center text-[8px]">
-            N
-          </div>
-          <span>Not Set</span>
         </div>
       </div>
+
       {activePopup && (
         <StatusPopupWrapper
           email={activePopup.email}

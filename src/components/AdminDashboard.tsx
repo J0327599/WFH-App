@@ -9,19 +9,9 @@ import {
   Trash2,
   Edit2
 } from 'lucide-react';
-import userData from '../data/users.json';
 import { format } from 'date-fns';
-import { getMonthlyStatuses } from '../services/statusService';
+import { statusService, User } from '../services/statusService';
 import { StatusEntry } from '../types';
-
-interface User {
-  igg: string;
-  fullName: string;
-  jobTitle: string;
-  area: string;
-  email: string;
-  reportsTo: string;
-}
 
 interface DashboardStats {
   totalUsers: number;
@@ -36,34 +26,35 @@ const AdminDashboard: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [areaFilter, setAreaFilter] = useState('all');
-  const [users] = useState<User[]>(userData.users);
+  const [users, setUsers] = useState<User[]>([]);
   const [statuses, setStatuses] = useState<StatusEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Handle logo click to go back to main dashboard
   const handleLogoClick = () => {
     navigate('/');
   };
 
-  // Fetch current statuses
   useEffect(() => {
-    const fetchStatuses = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
         const currentDate = new Date();
-        const monthData = await getMonthlyStatuses(currentDate);
+        const [fetchedUsers, monthData] = await Promise.all([
+          statusService.getUsers(),
+          statusService.getMonthlyStatuses(currentDate)
+        ]);
+        setUsers(fetchedUsers);
         setStatuses(monthData);
       } catch (error) {
-        console.error('Error fetching statuses:', error);
+        console.error('Error fetching dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchStatuses();
+    fetchData();
   }, []);
 
-  // Calculate dashboard stats
   const calculateStats = (): DashboardStats => {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStatuses = statuses.filter(s => s.date === today);
@@ -79,7 +70,6 @@ const AdminDashboard: React.FC = () => {
 
   const stats = calculateStats();
 
-  // Filter users based on search and filters
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
@@ -87,7 +77,6 @@ const AdminDashboard: React.FC = () => {
     return matchesSearch && matchesArea;
   });
 
-  // Export to Excel
   const exportToExcel = () => {
     const headers = ['Name', 'Job Title', 'Area', 'Email', 'Reports To'];
     const csvContent = [
@@ -109,7 +98,6 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center">
             <button
@@ -135,7 +123,6 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
           {isLoading ? (
             Array(5).fill(0).map((_, i) => (
@@ -148,7 +135,7 @@ const AdminDashboard: React.FC = () => {
             <>
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <h3 className="text-sm font-medium text-gray-500">Total Users</h3>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalUsers}</p>
+                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
               </div>
               <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                 <h3 className="text-sm font-medium text-gray-500">Working From Home</h3>
@@ -170,7 +157,6 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
 
-        {/* Filters and Actions */}
         <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-8">
           <div className="flex flex-wrap gap-4 items-center justify-between">
             <div className="flex gap-4 items-center flex-1">
@@ -209,24 +195,21 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => {}} // Add user modal
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                onClick={() => alert('Add User functionality not implemented yet.')}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm"
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add User
+                <UserPlus className="h-4 w-4 mr-2" /> Add User
               </button>
               <button
                 onClick={exportToExcel}
-                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Export to Excel
+                <Download className="h-4 w-4 mr-2" /> Export
               </button>
             </div>
           </div>
         </div>
 
-        {/* Users Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -241,39 +224,39 @@ const AdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.map((user) => (
-                  <tr key={user.igg} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{user.fullName}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.jobTitle}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.area}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.reportsTo}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => {}} // Edit user modal
-                        className="text-indigo-600 hover:text-indigo-900 mr-4"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {}} // Delete user confirmation
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-gray-500">Loading users...</td>
                   </tr>
-                ))}
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <tr key={user.email} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.fullName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.jobTitle}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.area}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.reportsTo}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button
+                          onClick={() => {}}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => {}}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-gray-500">No users found.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

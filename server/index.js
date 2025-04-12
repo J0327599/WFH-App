@@ -24,6 +24,17 @@ db.exec(`
     UNIQUE(email, date)
   );
 
+  CREATE TABLE IF NOT EXISTS users (
+    igg TEXT PRIMARY KEY,         -- Assuming IGG is the unique identifier
+    fullName TEXT NOT NULL,
+    jobTitle TEXT NOT NULL,
+    area TEXT,
+    email TEXT NOT NULL UNIQUE, -- Ensure email is unique
+    reportsTo TEXT,              -- This might reference another user's fullName or IGG
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS audit_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp DATETIME NOT NULL,
@@ -33,11 +44,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
-
-// Read users from users.json
-const fs = require('fs');
-const usersData = JSON.parse(fs.readFileSync(path.join(__dirname, '../src/data/users.json'), 'utf8'));
-const users = usersData.users;
 
 const statuses = ['H', 'O', 'L', 'T', 'S'];
 const startDate = new Date(2025, 0, 1); // January 1st, 2025
@@ -57,64 +63,99 @@ const insertAuditLog = db.prepare(`
 // Function to seed data
 const seedData = () => {
   console.log('Starting data seeding process...');
-  const existingEntries = db.prepare('SELECT COUNT(*) as count FROM status_entries').get();
-  
-  if (existingEntries.count > 0) {
-    console.log(`Found ${existingEntries.count} existing entries, skipping seed...`);
+
+  // 1. Seed Users Table (if empty)
+  const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+  if (userCount === 0) {
+    console.log('Users table is empty, seeding from users.json...');
+    const fs = require('fs'); // Require fs only here
+    const usersDataPath = path.join(__dirname, '../src/data/users.json');
+    try {
+      const usersData = JSON.parse(fs.readFileSync(usersDataPath, 'utf8'));
+      const insertUser = db.prepare(`
+        INSERT INTO users (igg, fullName, jobTitle, area, email, reportsTo)
+        VALUES (@igg, @fullName, @jobTitle, @area, @email, @reportsTo)
+      `);
+      const seedUsersTransaction = db.transaction((usersToSeed) => {
+        for (const user of usersToSeed) {
+          insertUser.run(user);
+        }
+      });
+      seedUsersTransaction(usersData.users);
+      console.log(`Seeded ${usersData.users.length} users.`);
+    } catch (error) {
+      console.error(`Error reading or seeding from ${usersDataPath}:`, error);
+      // Decide if we should proceed without users or stop
+      return; 
+    }
+  } else {
+    console.log(`Found ${userCount} existing users, skipping user seed.`);
+  }
+
+  // 2. Seed Status Entries (if empty)
+  const statusEntryCount = db.prepare('SELECT COUNT(*) as count FROM status_entries').get().count;
+  if (statusEntryCount > 0) {
+    console.log(`Found ${statusEntryCount} existing status entries, skipping status seed.`);
     return;
   }
 
-  console.log('No existing entries found, starting seed process...');
-  
-  // Begin transaction
-  const transaction = db.transaction(() => {
-  days.forEach(day => {
-    users.forEach(user => {
-      // Skip weekends
-      if (day.getDay() === 0 || day.getDay() === 6) return;
+  console.log('No existing status entries found, starting status seed process...');
+  // Fetch users from the database now for status seeding
+  const usersFromDb = db.prepare('SELECT * FROM users').all();
+  if (usersFromDb.length === 0) {
+    console.warn('No users found in the database to seed statuses for. Aborting status seed.');
+    return;
+  }
 
-      // Clear any existing entries first
-      db.prepare('DELETE FROM status_entries WHERE email = ? AND date = ?').run(user.email, format(day, 'yyyy-MM-dd'));
-      
-      // 80% chance of having a status entry for workdays
-      if (Math.random() < 0.8) {
-        // Weighted status distribution
-        let status;
-        const rand = Math.random();
-        if (rand < 0.6) { // 60% chance of office or home
-          status = Math.random() < 0.5 ? 'O' : 'H';
-        } else if (rand < 0.8) { // 20% chance of leave
-          status = 'L';
-        } else if (rand < 0.9) { // 10% chance of training
-          status = 'T';
-        } else { // 10% chance of sick
-          status = 'S';
+  // Begin transaction for statuses
+  const seedStatusesTransaction = db.transaction(() => {
+    days.forEach(day => {
+      usersFromDb.forEach(user => { // Use usersFromDb here
+        // Skip weekends
+        if (day.getDay() === 0 || day.getDay() === 6) return;
+
+        // Clear any existing entries first
+        db.prepare('DELETE FROM status_entries WHERE email = ? AND date = ?').run(user.email, format(day, 'yyyy-MM-dd'));
+        
+        // 80% chance of having a status entry for workdays
+        if (Math.random() < 0.8) {
+          // Weighted status distribution
+          let status;
+          const rand = Math.random();
+          if (rand < 0.6) { // 60% chance of office or home
+            status = Math.random() < 0.5 ? 'O' : 'H';
+          } else if (rand < 0.8) { // 20% chance of leave
+            status = 'L';
+          } else if (rand < 0.9) { // 10% chance of training
+            status = 'T';
+          } else { // 10% chance of sick
+            status = 'S';
+          }
+
+          const entry = {
+            email: user.email,
+            date: format(day, 'yyyy-MM-dd'),
+            status,
+            comment: `Auto-generated ${status} status for ${user.fullName}`
+          };
+
+          insertStatus.run(entry);
+
+          // Add audit log entry
+          insertAuditLog.run({
+            timestamp: format(day, 'yyyy-MM-dd HH:mm:ss'),
+            userId: user.email,
+            action: 'UPDATE_STATUS',
+            details: JSON.stringify(entry)
+          });
         }
-
-        const entry = {
-          email: user.email,
-          date: format(day, 'yyyy-MM-dd'),
-          status,
-          comment: `Auto-generated ${status} status for ${user.fullName}`
-        };
-
-        insertStatus.run(entry);
-
-        // Add audit log entry
-        insertAuditLog.run({
-          timestamp: format(day, 'yyyy-MM-dd HH:mm:ss'),
-          userId: user.email,
-          action: 'UPDATE_STATUS',
-          details: JSON.stringify(entry)
-        });
-      }
+      });
     });
   });
-});
 
-// Execute the transaction
-transaction();
-console.log('Seed process completed successfully!');
+  // Execute the transaction
+  seedStatusesTransaction();
+  console.log('Seed process completed successfully!');
 };
 
 // Call seedData function
@@ -216,7 +257,17 @@ app.get('/api/audit-logs', (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+// Get users
+app.get('/api/users', (req, res) => {
+  try {
+    const users = db.prepare('SELECT * FROM users ORDER BY fullName ASC').all();
+    res.json(users);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Failed to retrieve users' });
+  }
+});
+
 // Add status count endpoint
 app.get('/api/status/count', (req, res) => {
   try {
@@ -241,6 +292,7 @@ app.post('/api/reset-database', (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
