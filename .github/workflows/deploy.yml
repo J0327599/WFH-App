@@ -38,6 +38,8 @@ jobs:
 
       - name: Build project
         run: |
+          NETLIFY_AUTH_TOKEN=${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID=${{ secrets.NETLIFY_SITE_ID }}
           npm run build
         env:
           CI: false # Prevents treating warnings as errors

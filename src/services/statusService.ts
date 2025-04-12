@@ -1,4 +1,3 @@
-import { format } from 'date-fns';
 import { StatusEntry } from '../types';
 
 const API_URL = 'http://localhost:3000/api';

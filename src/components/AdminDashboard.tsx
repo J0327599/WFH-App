@@ -12,6 +12,7 @@ import {
 import userData from '../data/users.json';
 import { format } from 'date-fns';
 import { getMonthlyStatuses } from '../services/statusService';
+import { StatusEntry } from '../types';
 
 interface User {
   igg: string;
@@ -20,12 +21,6 @@ interface User {
   area: string;
   email: string;
   reportsTo: string;
-}
-
-interface StatusEntry {
-  email: string;
-  date: string;
-  status: 'H' | 'O' | 'L' | 'T' | 'S' | '';
 }
 
 interface DashboardStats {

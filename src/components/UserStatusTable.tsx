@@ -8,8 +8,20 @@ import {
 } from 'date-fns';
 import { isHoliday } from '../data/holidays';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import userData from '../data/users.json';
 import { statusService, StatusEntry } from '../services/statusService';
+
+interface UserStatusTableProps {
+  users: {
+    igg: string;
+    fullName: string;
+    jobTitle: string;
+    area: string;
+    email: string;
+    reportsTo: string;
+  }[];
+  currentDate: Date;
+  onMonthChange: (date: Date) => void;
+}
 
 const statusConfig = {
   H: { label: 'Work From Home', color: 'bg-blue-100 text-blue-800' },
@@ -127,11 +139,7 @@ const StatusPopup: React.FC<StatusPopupProps> = ({ status, comment, onSelect, on
 };
 
 // Status cell component to handle async status loading
-const StatusCell: React.FC<{
-  user: User;
-  day: Date;
-  onStatusClick: (event: React.MouseEvent, email: string, date: Date) => void;
-}> = ({ user, day, onStatusClick }) => {
+const StatusCell: React.FC<{ user: User; day: Date; onStatusClick: (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => void }> = ({ user, day, onStatusClick }) => {
   const [status, setStatus] = useState<WorkStatus>('');
   const [comment, setComment] = useState<string>();
   const [statusColor, setStatusColor] = useState<string>('bg-gray-100 text-gray-800');
@@ -167,9 +175,17 @@ const StatusCell: React.FC<{
   );
 };
 
-const UserStatusTable: React.FC = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [users] = useState<User[]>(userData.users);
+const UserStatusTable: React.FC<UserStatusTableProps> = ({ users, currentDate, onMonthChange }) => {
+  const handleMonthChange = (increment: number) => {
+    const newDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + increment, 1);
+    setCurrentMonth(newDate);
+    onMonthChange(newDate);
+  };
+  useEffect(() => {
+    setCurrentMonth(currentDate);
+  }, [currentDate]);
+
+  const [currentMonth, setCurrentMonth] = useState(currentDate);
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [expandAll, setExpandAll] = useState(false);
   const [activePopup, setActivePopup] = useState<{ email: string; date: Date; position: { x: number; y: number } } | null>(null);
@@ -266,30 +282,17 @@ const UserStatusTable: React.FC = () => {
   };
 
   // Navigation functions
-  const goToPreviousMonth = () => {
-    setCurrentDate(prevDate => {
-      const newDate = new Date(prevDate);
-      newDate.setMonth(prevDate.getMonth() - 1);
-      return newDate;
-    });
-  };
-
-  const goToNextMonth = () => {
-    setCurrentDate(prevDate => {
-      const newDate = new Date(prevDate);
-      newDate.setMonth(prevDate.getMonth() + 1);
-      return newDate;
-    });
-  };
+  const goToPreviousMonth = () => handleMonthChange(-1);
+  const goToNextMonth = () => handleMonthChange(1);
 
   // Get all days in the month
   const getDaysInMonth = () => {
-    const monthStart = startOfMonth(currentDate);
-    const monthEnd = endOfMonth(currentDate);
+    const startDate = startOfMonth(currentMonth);
+    const endDate = endOfMonth(currentMonth);
     
     return eachDayOfInterval({
-      start: monthStart,
-      end: monthEnd
+      start: startDate,
+      end: endDate
     });
   };
 
@@ -305,10 +308,10 @@ const UserStatusTable: React.FC = () => {
 
 
   // Handle status cell click
-  const handleStatusClick = async (event: React.MouseEvent, email: string, date: Date) => {
+  const handleStatusClick = (event: React.MouseEvent<HTMLElement>, email: string, date: Date) => {
     if (isWeekend(date) || isHoliday(date)) return;
 
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
     setActivePopup({
       email,
       date,
