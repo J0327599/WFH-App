@@ -77,16 +77,22 @@ const seedData = () => {
         VALUES (@igg, @fullName, @jobTitle, @area, @email, @reportsTo)
       `);
       const seedUsersTransaction = db.transaction((usersToSeed) => {
+        let insertedCount = 0;
         for (const user of usersToSeed) {
-          insertUser.run(user);
+          try {
+            insertUser.run(user);
+            insertedCount++;
+          } catch (userInsertError) {
+            console.error(`Error inserting user ${user.email}:`, userInsertError.message); // Log specific user insert error
+          }
         }
+        return insertedCount;
       });
-      seedUsersTransaction(usersData.users);
-      console.log(`Seeded ${usersData.users.length} users.`);
+      const insertedCount = seedUsersTransaction(usersData.users);
+      console.log(`Attempted to seed ${usersData.users.length} users. Successfully inserted: ${insertedCount}.`);
     } catch (error) {
-      console.error(`Error reading or seeding from ${usersDataPath}:`, error);
-      // Decide if we should proceed without users or stop
-      return; 
+      console.error(`Error reading or parsing ${usersDataPath} or during transaction:`, error);
+      return;
     }
   } else {
     console.log(`Found ${userCount} existing users, skipping user seed.`);
@@ -263,8 +269,8 @@ app.get('/api/users', (req, res) => {
     const users = db.prepare('SELECT * FROM users ORDER BY fullName ASC').all();
     res.json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
-    res.status(500).json({ error: 'Failed to retrieve users' });
+    console.error('Error fetching users from database:', error); // More specific log
+    res.status(500).json({ error: 'Failed to retrieve users from the database' });
   }
 });
 

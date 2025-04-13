@@ -9,15 +9,18 @@ const UserStatusDashboard = () => {
   const [activeTab, setActiveTab] = useState<'table' | 'analytics'>('table');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [users, setUsers] = useState<User[]>([]);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setError(null);
       try {
         const fetchedUsers = await statusService.getUsers();
         setUsers(fetchedUsers || []);
       } catch (error) {
         console.error("Failed to fetch users:", error);
+        setError('Failed to load user data. Please ensure the backend server is running and accessible.');
         setUsers([]);
       }
     };
@@ -59,6 +62,12 @@ const UserStatusDashboard = () => {
             Admin Dashboard
           </button>
         </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
+            <p><strong>Error:</strong> {error}</p>
+          </div>
+        )}
 
         {activeTab === 'table' ? (
           <div className="bg-white rounded-lg shadow overflow-hidden">
